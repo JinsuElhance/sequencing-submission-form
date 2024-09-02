@@ -37,6 +37,7 @@ from helpers.bucket import (
 )
 from helpers.slack import send_message_to_slack
 from helpers.unzip import get_progress_db_unzip, unzip_raw
+from helpers.aws import list_s3_items
 from helpers.fastqc import (
     get_fastqc_progress,
     init_fastqc_multiqc_files,
@@ -341,6 +342,7 @@ def upload_form_resume():
             nr_files = 0
             uploads_folder = upload.uploads_folder
             cvs_records = []
+            aws_files = []
 
             if upload.csv_uploaded:
                 gz_filedata = Upload.get_gz_filedata(upload.id)
@@ -348,6 +350,7 @@ def upload_form_resume():
                 path = Path("uploads", upload.uploads_folder)
                 save_path = path / upload.csv_filename
                 cvs_records = get_csv_data(save_path)
+                aws_files = list_s3_items()
 
                 if gz_filedata:
                     for filename, file_data in gz_filedata.items():
@@ -474,6 +477,7 @@ def upload_form_resume():
                 sequencing_method=upload.sequencing_method,
                 form_reporting=form_reporting,
                 is_admin=current_user.admin,
+                aws_files=aws_files,
             )
         else:
             return redirect(url_for("user.only_admins"))
@@ -1259,6 +1263,27 @@ def process_server_file():
     )
 
 
+
+@upload_bp.route(
+    "/process_aws_file", methods=["POST"], endpoint="process_aws_file"
+)
+@login_required
+@approved_required
+@admin_required
+def process_aws_file():
+    process_id = request.form.get("process_id")
+    filename = request.form.get("step_4_aws_file")
+    logger.info(process_id)
+    logger.info(filename)
+
+
+    return jsonify(
+        {
+            "message": "File upload complete and verified",
+            "gz_filedata": 1,
+        }
+    )
+
 @upload_bp.route(
     "/admin_remove_file", methods=["POST"], endpoint="admin_remove_file"
 )
@@ -1309,3 +1334,12 @@ def admin_remove_file():
             "status": 1,
         }
     )
+
+
+@upload_bp.route("/get_aws_items", methods=["GET"], endpoint="get_aws_items")
+@login_required
+@approved_required
+@admin_required
+def get_aws_items():
+    items = list_s3_items()
+    return jsonify(items)

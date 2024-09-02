@@ -11,7 +11,6 @@ Flask-SQLAlchemy==3.1.1
 
 # next ones are required for google login
 oauthlib==3.0.1
-pyOpenSSL==19.0.0
 Flask-Login==0.6.3
 
 # next ones are required for database and csv handling
@@ -26,7 +25,9 @@ redis==5.0.1
 psutil==5.9.8
 
 google-api-python-client==2.125.0
-
+boto3>=1.28.57
+pyOpenSSL>=23.2.0
+cryptography>=41.0.3
 pandas
 
 xlrd

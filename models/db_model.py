@@ -195,3 +195,12 @@ class SequencingFilesUploadedTable(Base):
     new_name = Column(String(255), nullable=True)
     md5 = Column(String(50), nullable=True)
     bucket_upload_progress = Column(Integer, nullable=True)
+
+
+class AwsBucketItemsTable(Base):
+    __tablename__ = "aws_bucket_items"
+    id = Column(Integer, primary_key=True)
+    filename = Column(String(255), nullable=True)
+    md5 = Column(String(50), nullable=True)
+    bucket_download_progress = Column(Integer, nullable=True)
+    local_folder = Column(String(255), nullable=True)
