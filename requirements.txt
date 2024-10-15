@@ -35,3 +35,7 @@ openpyxl
 debugpy # Required for debugging.
 
 docker
+
+# next ones are required to get the land_use data from openeo
+openeo
+rasterio

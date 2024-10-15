@@ -17,6 +17,12 @@ RUN apk update && \
         openjdk8 \
         perl
 
+# Install GDAL and its dependencies (Required for rasterio which is required for openeo api)
+RUN apk add --no-cache \
+    gdal-dev \
+    geos-dev \
+    proj-dev
+
 # Set environment variable for Java 8
 ENV JAVA_HOME=/usr/lib/jvm/default-jvm
 
