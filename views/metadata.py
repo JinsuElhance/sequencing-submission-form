@@ -1275,47 +1275,6 @@ def exclude_from_mapping():
     )
     return jsonify({"success": True, "file_id": file_id, "exclude": exclude})
 
-
-@metadata_bp.route(
-    "/upload_sequencer_ids_migration_file",
-    methods=["POST"],
-    endpoint="upload_sequencer_ids_migration_file",
-)
-@login_required
-@admin_required
-@approved_required
-def upload_sequencer_ids_migration_file():
-    file = request.files.get("file")
-    process_id = request.form.get("process_id")
-    if not file:
-        return jsonify({"error": "No file uploaded"}), 400
-
-    # Read uploaded file and get its column names
-    filename = file.filename
-    file_extension = os.path.splitext(filename)[1].lower()
-
-    if file_extension == ".csv":
-        df = pd.read_csv(file)
-    else:
-        return jsonify({"error": "Unsupported file type"}), 400
-    df = df.dropna(how="all")
-
-    process_data = SequencingUpload.get(process_id)
-
-    # change from here down, as they are migration related
-    result = SequencingSequencerId.check_df_and_add_records(
-        process_id=process_id,
-        df=df,
-        process_data=process_data,
-    )
-    missing_sequencing_ids = SequencingUpload.check_missing_sequencer_ids(
-        process_id
-    )
-    result["missing_sequencing_ids"] = missing_sequencing_ids
-
-    return (jsonify(result), 200)
-
-
 @metadata_bp.route(
     "/openeo",
     methods=["GET"],
