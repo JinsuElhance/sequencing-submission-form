@@ -1599,3 +1599,17 @@ def reset_primers_count():
             url_for("metadata.metadata_form", process_id=process_id)
             + "#step_9"
         )
+
+
+@metadata_bp.route(
+    "/test_rdata",
+    methods=["GET"],
+    endpoint="test_rdata",
+)
+@login_required
+@admin_required
+@approved_required
+def test_rdata():
+    from helpers.read_rdata import read_and_insert_otu_data
+
+    read_and_insert_otu_data('seq_processed/00003_20240904RPGNGG/lotus2_report/otu_table.csv',3, 1 )

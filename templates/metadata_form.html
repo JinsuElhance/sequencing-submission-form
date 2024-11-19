@@ -252,6 +252,7 @@
               <tr>
                   <th scope="col" class="bg-gray">DbID</th>
                   <th scope="col" class="bg-gray"><span class="grey">____</span>Sequencer_IDs<span class="grey">____</span></th>
+                  <th scope="col" class="bg-gray">OTUs</th>
                   {% for expectedColumn in expected_columns.keys() %}
                       <th scope="col">{{ expectedColumn }}</th>
                   {% endfor %}
@@ -272,6 +273,13 @@
                                   {% endif %}
                               {% endfor %}
                             {% endif %}
+                          </td>
+                          <td>
+                            {% for otu in row["otu_data"] %}
+                              {{ otu.analysis_type_name }}: <br>
+                              -- OTUs: {{ otu.c_otu }} <br>
+                              -- Counts: {{ otu.s_otu }} <br>
+                            {% endfor %}
                           </td>
                           {% for column in expected_columns.keys() %}
                               <td>{{ row[column] }}</td>

@@ -20,6 +20,7 @@ from models.db_model import (
     SequencingFilesUploadedTable,
     SequencingAnalysisTypesTable,
     UserTable,
+    OTUDataTable,
 )
 from models.sequencing_analysis import SequencingAnalysis
 from models.sequencing_analysis_type import SequencingAnalysisType
@@ -27,9 +28,9 @@ from models.sequencing_files_uploaded import SequencingFileUploaded
 from helpers.bucket import init_bucket_chunked_upload_v2
 from pathlib import Path
 from flask_login import current_user
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, aliased
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 
 # Get the logger instance from app.py
 logger = logging.getLogger("my_app_logger")  # Use the same name as in app.py
@@ -337,7 +338,7 @@ class SequencingUpload:
         return regions
 
     @classmethod
-    def get_samples(self, sequencingUploadId):
+    def get_samples(cls, sequencingUploadId):
         # Connect to the database and create a session
         db_engine = connect_db()
         session = get_session(db_engine)
@@ -349,7 +350,7 @@ class SequencingUpload:
             .all()
         )
 
-        # Define the as_dict method within this function
+        # Define the as_dict function to convert instances to dictionaries
         def as_dict(instance):
             """Convert SQLAlchemy model instance to a dictionary."""
             return {
@@ -357,14 +358,54 @@ class SequencingUpload:
                 for column in instance.__table__.columns
             }
 
-        # Convert each sample instance to a dictionary
-        samples_list = [as_dict(sample) for sample in samples]
+        # Define an alias for OTUDataTable and SequencingAnalysisTypesTable
+        otu_data_alias = aliased(OTUDataTable)
+        analysis_types_alias = aliased(SequencingAnalysisTypesTable)
+
+        # Get the aggregated OTU data by analysis_type_id and sample_id, including analysis_type_name
+        otu_aggregates = (
+            session.query(
+                otu_data_alias.sample_id,
+                otu_data_alias.analysis_type_id,
+                analysis_types_alias.name,
+                func.count(otu_data_alias.otu_id).label("c_otu"),
+                func.sum(otu_data_alias.count).label("s_otu")
+            )
+            .join(analysis_types_alias, otu_data_alias.analysis_type_id == analysis_types_alias.id)
+            .filter(otu_data_alias.sample_id.in_(
+                [sample.id for sample in samples]
+            ))
+            .group_by(otu_data_alias.sample_id, otu_data_alias.analysis_type_id, analysis_types_alias.name)
+            .all()
+        )
+
+        # Organize the aggregated OTU data into a dictionary for easy lookup
+        otu_data_by_sample = {}
+        for row in otu_aggregates:
+            sample_id = row.sample_id
+            analysis_type_id = row.analysis_type_id
+            if sample_id not in otu_data_by_sample:
+                otu_data_by_sample[sample_id] = []
+            otu_data_by_sample[sample_id].append({
+                "analysis_type_id": analysis_type_id,
+                "analysis_type_name": row.name,
+                "c_otu": row.c_otu,
+                "s_otu": row.s_otu
+            })
+
+        # Convert each sample instance to a dictionary and add OTU data
+        samples_list = []
+        for sample in samples:
+            sample_dict = as_dict(sample)
+            # Add the OTU data grouped by analysis_type_id with analysis_type_name
+            sample_dict["otu_data"] = otu_data_by_sample.get(sample.id, [])
+            samples_list.append(sample_dict)
 
         # Close the session
         session.close()
 
         return samples_list
-
+        
     @classmethod
     def create(cls, datadict):
         db_engine = connect_db()

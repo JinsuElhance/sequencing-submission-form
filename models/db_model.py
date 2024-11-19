@@ -194,7 +194,8 @@ class SequencingAnalysisTypesTable(Base):
     region = Column(String(255), nullable=True)
     parameters = Column(JSON(none_as_null=True))
 
-
+    otu_data = relationship("OTUDataTable", back_populates="analysis_type")
+    
 class SequencingSamplesTable(Base):
     __tablename__ = "sequencing_samples"
     id = Column(Integer, primary_key=True)
@@ -277,3 +278,26 @@ class SequencingCompanyInputTable(Base):
     region = Column(String(50), nullable=True)
     index_1 = Column(String(50), nullable=True)
     barcode_2 = Column(String(50), nullable=True)
+
+class OTUTable(Base):
+    __tablename__ = "otu"
+    id = Column(Integer, primary_key=True)
+    otu_id = Column(String(255), unique=True, nullable=False)  # OTU identifier, e.g., OTU2761
+    
+    # Relationship to OTUDataTable (one-to-many relationship)
+    otu_data = relationship("OTUDataTable", back_populates="otu", cascade="all, delete-orphan")
+    
+class OTUDataTable(Base):
+    __tablename__ = "otu_data"
+    id = Column(Integer, primary_key=True)
+    otu_id = Column(Integer, ForeignKey('otu.id'), nullable=False)  # ForeignKey to OTUTable.id
+    sample_id = Column(Integer, ForeignKey('sequencing_samples.id', ondelete="CASCADE"))
+    analysis_type_id = Column(Integer, ForeignKey('sequencing_analysis_types.id', ondelete="CASCADE"))
+    count = Column(Integer, nullable=False)  # OTU count for this sample
+
+    sample = relationship("SequencingSamplesTable", back_populates="otu_counts")
+    otu = relationship("OTUTable", back_populates="otu_data")
+    analysis_type = relationship("SequencingAnalysisTypesTable", back_populates="otu_data")
+
+# Establish the relationship in SequencingSamplesTable:
+SequencingSamplesTable.otu_counts = relationship("OTUDataTable", back_populates="sample")
